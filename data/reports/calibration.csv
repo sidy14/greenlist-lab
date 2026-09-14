@@ -1,0 +1,9 @@
+prompt,z_clean,z_wm,green_clean,green_wm,tokens_clean,tokens_wm,attempts,detected
+Write a neutral paragraph about the physics of ocean tides.,3.004,11.119,0.3379,0.5753,220,220,1,True
+Explain how a bill becomes law in the United States.,0.039,11.275,0.2511,0.5799,220,220,2,True
+Describe the water cycle in plain language.,0.663,10.027,0.2694,0.5434,220,220,1,True
+Summarise the main causes of the 2008 financial crisis.,-0.741,9.87,0.2283,0.5388,220,220,1,True
+Explain what a hash function is to a high-school student.,-0.585,15.645,0.2329,0.7078,220,220,1,True
+Describe the structure of a plant cell.,2.38,10.807,0.3196,0.5662,220,220,1,True
+Summarise the plot of Hamlet in three sentences.,1.444,12.679,0.2922,0.621,220,220,1,True
+Explain why the sky is blue.,-0.273,10.651,0.242,0.5616,220,220,2,True
