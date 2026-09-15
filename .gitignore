@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 data/raw/**
 !data/raw/.gitkeep
+
+ai_text_lab.egg-info/
