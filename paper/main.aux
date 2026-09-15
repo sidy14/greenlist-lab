@@ -4,15 +4,34 @@
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Method}{1}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Results}{1}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Discussion}{1}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Green-list.}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{SynthID.}{1}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Generation.}{1}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Detection.}{1}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Protocol.}{2}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Results}{2}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Three-model calibration}{2}{subsection.3.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Calibration across models. Separation = $\bar  z_{wm} - \bar  z_{clean}$.}}{2}{table.1}\protected@file@percent }
+\newlabel{tab:cal}{{1}{2}{Calibration across models. Separation = $\bar z_{wm} - \bar z_{clean}$}{table.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Watermark separation versus model size (log scale). Green-list is non-monotonic, collapsing below zero at 500M and only partially recovering. SynthID declines smoothly and stays above threshold everywhere.}}{2}{figure.1}\protected@file@percent }
+\newlabel{fig:curve}{{1}{2}{Watermark separation versus model size (log scale). Green-list is non-monotonic, collapsing below zero at 500M and only partially recovering. SynthID declines smoothly and stays above threshold everywhere}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Vocabulary, not parameters}{2}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Surface robustness}{2}{subsection.3.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Detection rate across models. Green-list drops to 0\% on Qwen 2.5 while SynthID holds 100\% on all three.}}{3}{figure.2}\protected@file@percent }
+\newlabel{fig:tpr}{{2}{3}{Detection rate across models. Green-list drops to 0\% on Qwen 2.5 while SynthID holds 100\% on all three}{figure.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Empirical vocabulary threshold for green-list reliability.}}{3}{table.2}\protected@file@percent }
+\newlabel{tab:vocab}{{2}{3}{Empirical vocabulary threshold for green-list reliability}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Semantic attacks on GPT-2}{3}{subsection.3.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Semantic attacks on GPT-2 watermarked completions.}}{3}{table.3}\protected@file@percent }
+\newlabel{tab:attacks}{{3}{3}{Semantic attacks on GPT-2 watermarked completions}{table.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Discussion}{3}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why green-list fails on large vocabularies.}{3}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why SynthID survives.}{3}{section*.7}\protected@file@percent }
 \bibstyle{plain}
 \bibdata{refs}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Calibration across models and watermarks. Green-list separation collapses from $10.77\sigma $ on GPT-2 to $3.74\sigma $ on TinyLlama-1.1B, while SynthID remains above $6\sigma $ in both.}}{2}{figure.1}\protected@file@percent }
-\newlabel{fig:cal}{{1}{2}{Calibration across models and watermarks. Green-list separation collapses from $10.77\sigma $ on GPT-2 to $3.74\sigma $ on TinyLlama-1.1B, while SynthID remains above $6\sigma $ in both}{figure.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Calibration across models and watermarks. Separation is $\bar  {z}_{wm} - \bar  {z}_{clean}$; TPR is at $z > 4$.}}{2}{table.1}\protected@file@percent }
-\newlabel{tab:cal}{{1}{2}{Calibration across models and watermarks. Separation is $\bar {z}_{wm} - \bar {z}_{clean}$; TPR is at $z > 4$}{table.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusion}{2}{section.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Semantic attacks on GPT-2 watermarked completions.}}{3}{table.2}\protected@file@percent }
-\newlabel{tab:attacks}{{2}{3}{Semantic attacks on GPT-2 watermarked completions}{table.2}{}}
-\gdef \@abspage@last{3}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Mean $z$-score by transform $\times $ watermark $\times $ model. The red column is green-list on Qwen 2.5, which never rises above threshold for any transform.}}{4}{figure.3}\protected@file@percent }
+\newlabel{fig:heatmap}{{3}{4}{Mean $z$-score by transform $\times $ watermark $\times $ model. The red column is green-list on Qwen 2.5, which never rises above threshold for any transform}{figure.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{The back-translation surprise.}{4}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Limitations}{4}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{4}{section.6}\protected@file@percent }
+\gdef \@abspage@last{5}
