@@ -2,20 +2,20 @@
 cli.py — command-line interface for ai-text-lab.
 
 Usage:
-    python3 -m src.cli analyze <file>
-    python3 -m src.cli clean <file> -o <out>
-    python3 -m src.cli analyze <file> --model openai-community/gpt2 --json
+    python3 src/cli.py analyze <file> [--model gpt2] [--json]
+    python3 src/cli.py clean   <file> -o <out>
+    python3 src/cli.py diff    <file> [--mode lines|chars|both]
 """
 from __future__ import annotations
 
 import argparse
-import json
 import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
 from analyzer import Analyzer
+from differ import render_full, diff_lines, diff_chars
 
 
 def _read(path: str) -> str:
@@ -40,11 +40,35 @@ def cmd_analyze(args) -> int:
         ngram_len=args.ngram,
     )
     report = analyzer.analyze(text)
-
-    if args.json:
-        out = report.to_json()
+    out = report.to_json() if args.json else report.to_human()
+    if args.output:
+        _write(args.output, out)
     else:
-        out = report.to_human()
+        sys.stdout.write(out)
+        if not out.endswith("\n"):
+            sys.stdout.write("\n")
+    return 0
+
+
+def cmd_clean(args) -> int:
+    text = _read(args.input)
+    report = Analyzer(model_id=None).analyze(text)
+    _write(args.output, report.cleaned_text)
+    return 0
+
+
+def cmd_diff(args) -> int:
+    text = _read(args.input)
+    report = Analyzer(model_id=None).analyze(text)
+    cleaned = report.cleaned_text
+    color = sys.stdout.isatty() and not args.no_color
+
+    if args.mode == "lines":
+        out = diff_lines(text, cleaned, color=color)
+    elif args.mode == "chars":
+        out = diff_chars(text, cleaned, color=color)
+    else:
+        out = render_full(text, cleaned, color=color)
 
     if args.output:
         _write(args.output, out)
@@ -52,45 +76,34 @@ def cmd_analyze(args) -> int:
         sys.stdout.write(out)
         if not out.endswith("\n"):
             sys.stdout.write("\n")
-
-    return 0
-
-
-def cmd_clean(args) -> int:
-    text = _read(args.input)
-    analyzer = Analyzer(model_id=None)
-    report = analyzer.analyze(text)
-    _write(args.output, report.cleaned_text)
     return 0
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(
-        prog="ai-text-lab",
-        description="Detect and clean AI-text surface artifacts and "
-                    "statistical watermarks.",
-    )
+    ap = argparse.ArgumentParser(prog="ai-text-lab")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     a = sub.add_parser("analyze", help="produce a full report")
-    a.add_argument("input", help="input file or '-' for stdin")
-    a.add_argument("-o", "--output", default=None,
-                   help="write report to this file (default stdout)")
-    a.add_argument("--json", action="store_true",
-                   help="emit JSON instead of human-readable text")
-    a.add_argument("--model", default=None,
-                   help="tokenizer id for statistical detection, "
-                        "e.g. openai-community/gpt2")
+    a.add_argument("input")
+    a.add_argument("-o", "--output", default=None)
+    a.add_argument("--json", action="store_true")
+    a.add_argument("--model", default=None)
     a.add_argument("--ngram", type=int, default=5)
     a.add_argument("--no-greenlist", action="store_true")
     a.add_argument("--no-synthid", action="store_true")
     a.set_defaults(func=cmd_analyze)
 
     c = sub.add_parser("clean", help="emit only the cleaned text")
-    c.add_argument("input", help="input file or '-' for stdin")
-    c.add_argument("-o", "--output", default="-",
-                   help="output file or '-' for stdout")
+    c.add_argument("input")
+    c.add_argument("-o", "--output", default="-")
     c.set_defaults(func=cmd_clean)
+
+    d = sub.add_parser("diff", help="show what would change")
+    d.add_argument("input")
+    d.add_argument("-o", "--output", default=None)
+    d.add_argument("--mode", choices=["lines", "chars", "both"], default="both")
+    d.add_argument("--no-color", action="store_true")
+    d.set_defaults(func=cmd_diff)
 
     args = ap.parse_args()
     return args.func(args)
