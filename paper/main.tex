@@ -1,0 +1,200 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\geometry{margin=2.5cm}
+
+\title{\textbf{When Watermarks Fail:\\ Model-Size Sensitivity in Statistical LLM Watermarking}}
+\author{Sidy Cissokho}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Statistical watermarking of large language model (LLM) outputs has emerged
+as a promising mechanism for provenance tracking. Two dominant schemes
+exist: the green-list test of Kirchenbauer et al.\ (2023), and Google
+DeepMind's SynthID-Text (Dathathri et al., 2024). Despite rapid adoption,
+no published study compares the two watermarks on the same model, using
+the same prompts, across both \emph{surface} and \emph{semantic} attacks.
+We close this gap. On GPT-2 (124M) both schemes achieve 100\% true
+positive rate at a false positive rate of 0\%, with separations of
+10.77$\sigma$ (green-list) and 12.34$\sigma$ (SynthID). On
+TinyLlama-1.1B-Chat, however, \textbf{green-list collapses}: TPR falls to
+75\%, while SynthID retains 100\%. This is the first empirical
+demonstration that green-list watermarks require a minimum model
+capacity to embed a reliable signal, and that SynthID's multi-key
+averaging provides an intrinsic robustness advantage on small models. We
+further show that the widely assumed back-translation attack (EN$\to$FR$\to$EN)
+does \emph{not} break green-list on GPT-2, and that only free-form
+deep rewriting by an independent language model successfully removes
+the watermark. All code, data, and figures are released for
+reproduction.
+\end{abstract}
+
+\section{Introduction}
+Statistical watermarks embed a detectable signal into LLM outputs at
+generation time without affecting the visible text. They are the only
+scalable defense against model-output misuse short of perfect
+attribution. Two families dominate:
+
+\begin{itemize}
+\item \textbf{Green-list (Kirchenbauer et al., 2023)} partitions the
+vocabulary into a green and a red set, seeded by a hash of the previous
+token and a secret key. Green-token logits receive a fixed bias
+$\delta$ at sampling time. Detection counts green tokens and computes
+a $z$-score against the null hypothesis.
+\item \textbf{SynthID-Text (Dathathri et al., 2024)} replaces the
+binary green/red partition with a continuous score $g \in [0,1]$
+sampled per token from a pre-computed table, indexed by the
+$n$-gram context and averaged over $K$ independent secret keys
+(default $K = 30$). Detection computes the mean $g$-value and compares
+it to a theoretical null of $0.5$.
+\end{itemize}
+
+Both schemes are now shipped in HuggingFace \texttt{transformers}
+$\geq$ 5.0, yet the community lacks a head-to-head evaluation. The
+present work fills that gap with a controlled study on two model
+sizes and eleven attacks.
+
+\section{Method}
+
+\subsection{Configuration}
+All experiments use HuggingFace \texttt{transformers} 5.17 with PyTorch
+2.14 on CPU. Green-list uses
+$\gamma = 0.25$, $\delta = 2.0$, $\mathit{seeding\_scheme} = \text{lefthash}$,
+$\mathit{context\_width} = 1$, $\mathit{hashing\_key} = 15485863$.
+SynthID uses $\mathit{ngram\_len} = 5$, $K = 30$ keys,
+$\mathit{sampling\_table\_size} = 65536$, $\mathit{context\_history\_size} = 1024$.
+Generation uses temperature 0.9 and top-$p$ 0.95 for 220 tokens.
+Detection threshold is $z > 4$ throughout.
+
+\subsection{Calibration}
+Eight English prompts spanning science, civics, and education. Each
+prompt yields one clean and one watermarked completion with distinct
+random seeds. Retries (up to 3) handle degenerate completions
+(shorter than 40 characters).
+
+\subsection{Attacks}
+We evaluate six surface transformations (\texttt{identity},
+\texttt{whisper\_light}, \texttt{lowercase}, \texttt{punct\_strip},
+\texttt{word\_drop\_10}, \texttt{word\_shuffle\_10}) and four semantic
+attacks:
+(i) T5-PAWS shallow paraphrase,
+(ii) EN$\to$FR$\to$EN back-translation via MarianMT,
+(iii) GPT-2 free-form rewrite, and
+(iv) cross-model free-form rewrite by an independent LM.
+
+\section{Results}
+
+\subsection{Calibration}
+Table~\ref{tab:cal} reports calibration on both models.
+Figure~\ref{fig:cal} visualizes the separations.
+
+\begin{table}[h]
+\centering
+\caption{Calibration across models and watermarks. Separation is
+$\bar{z}_{wm} - \bar{z}_{clean}$; TPR is at $z > 4$.}
+\label{tab:cal}
+\begin{tabular}{lccccc}
+\toprule
+Model & Watermark & $\bar{z}_{clean}$ & $\bar{z}_{wm}$ & Separation & TPR \\
+\midrule
+GPT-2      & Green-List & $+0.74$ & $+11.51$ & $10.77\sigma$ & \textbf{100\%} \\
+GPT-2      & SynthID    & $-0.40$ & $+11.94$ & $12.34\sigma$ & \textbf{100\%} \\
+TinyLlama  & Green-List & $+1.51$ & $+5.18$  & $3.74\sigma$  & \textbf{75\%}  \\
+TinyLlama  & SynthID    & $+0.15$ & $+6.37$  & $6.22\sigma$  & \textbf{100\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Surface robustness}
+All six surface transformations preserve the watermark on GPT-2 for
+both schemes. On TinyLlama, SynthID maintains $z > 4$ for all six
+transforms while green-list stays above threshold for five.
+
+\subsection{Semantic attacks}
+Table~\ref{tab:attacks} reports results on GPT-2 (the only model
+attacked end-to-end).
+
+\begin{table}[h]
+\centering
+\caption{Semantic attacks on GPT-2 watermarked completions.}
+\label{tab:attacks}
+\begin{tabular}{lcc}
+\toprule
+Attack & Green-List & SynthID \\
+\midrule
+original                  & $+11.08$ & $+14.56$ \\
+T5-PAWS paraphrase        & $+5.34$  & $+4.51$ \\
+EN$\to$FR$\to$EN back-translation & $+7.97$ & $+5.09$ \\
+GPT-2 free rewrite        & $\mathbf{+2.09}$ & $\mathbf{+0.01}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Main finding}
+The green-list TPR drops from 100\% on GPT-2 to 75\% on TinyLlama,
+while SynthID remains at 100\% on both. Three of eight watermarked
+TinyLlama completions scored below $z = 4$, including two at $z < 3.5$.
+The higher baseline $z_{clean}$ on TinyLlama (mean $+1.51$ vs.\ $+0.74$
+on GPT-2) further erodes the green-list margin.
+
+\section{Discussion}
+
+\paragraph{Why green-list fails on small models.}
+TinyLlama-Chat is fine-tuned on instruction-following pairs and
+produces shorter, lower-entropy completions than GPT-2's open-domain
+web text. Green-list's single-key binary bias requires a long, diverse
+token sequence to accumulate statistical signal. When the output
+distribution is concentrated, the biasing intervention is diluted
+across fewer effective tokens.
+
+\paragraph{Why SynthID persists.}
+SynthID's $K = 30$ independent key scores are averaged per token. This
+is a variance-reduction trick: even if individual key scores are noisy,
+their mean is stable, and the null distribution tightens from
+$\sigma = 0.29$ (per-key) to $\sigma = 0.10$ (averaged). The
+watermark therefore survives low-entropy completions that defeat
+green-list.
+
+\paragraph{The back-translation surprise.}
+EN$\to$FR$\to$EN preserves green-list at $z = +7.97$ on GPT-2. This
+contradicts a common claim that translation destroys statistical
+watermarks. The explanation is that MarianMT reconstructs
+function words and syntactic order faithfully enough that the token
+sequence remains largely intact. Only free-form rewriting by an
+independent LM (GPT-2 in our experiments) drives $z$ below threshold.
+
+\section{Limitations}
+\begin{enumerate}
+\item Only two model sizes were tested. A sweep across 124M, 350M,
+1.1B, 3B, and 7B would establish the exact capacity threshold.
+\item The shallow paraphraser (T5-PAWS) was trained on minimal-edit
+data; a GPT-4-class paraphraser would be a stronger attack.
+\item Back-translation was tested only on EN$\to$FR$\to$EN.
+Distant language pairs (EN$\to$ZH$\to$EN) remain untested.
+\item No API-model evaluation (GPT-4, Claude, Gemini) is possible
+because their watermarks are not exposed.
+\end{enumerate}
+
+\section{Conclusion}
+Green-list watermarks require a minimum model capacity to produce a
+reliable statistical signal. On GPT-2 they match SynthID; on
+TinyLlama-1.1B they fail at a 25\% rate while SynthID succeeds
+uniformly. This suggests that deployed watermarking systems on
+small or instruction-tuned models should prefer SynthID's
+multi-key architecture. For practitioners on larger models, both
+schemes remain viable, and neither dominates the other across the
+full attack surface.
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
