@@ -41,30 +41,25 @@ addopts = "-ra --strict-markers"
 [tool.coverage.run]
 source = ["src"]
 omit = [
-    "src/backtranslation_attack.py",
-    "src/generate_watermarked.py",
-    "src/greenlist_detector.py",
-    "src/paraphrase_attack.py",
-    "src/plot_all.py",
-    "src/plot_comparison.py",
-    "src/plot_cross_model.py",
-    "src/plot_results.py",
-    "src/run_calibration.py",
-    "src/run_robustness.py",
+    "src/plot_*.py",
+    "src/run_*.py",
     "src/synthid_attacks.py",
     "src/synthid_calibration.py",
     "src/synthid_detector.py",
     "src/synthid_generate_watermarked.py",
     "src/synthid_robustness.py",
     "src/synthid_smoke_test.py",
-    "src/tinyllama_all.py",
-    "src/tinyllama_synthid_resume.py",
-    "src/qwen_all.py",`n    "src/cli.py",
+    "src/tinyllama_*.py",
+    "src/qwen_all.py",
+    "src/backtranslation_attack.py",
+    "src/paraphrase_attack.py",
+    "src/generate_watermarked.py",
+    "src/greenlist_detector.py",
+    "src/cli.py",
 ]
 
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
-    "if __name__ == .__main__.:",
     "raise NotImplementedError",
 ]
