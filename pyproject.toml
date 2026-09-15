@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-text-lab"
+version = "0.1.0"
+description = "Detect and clean AI-generated text artifacts and statistical watermarks"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Sidy Cissokho"}]
+dependencies = [
+    "transformers>=5.0",
+    "torch>=2.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+plots = ["matplotlib>=3.7", "pandas>=2.0"]
+dev   = ["pytest>=7.0"]
+
+[project.scripts]
+ai-text-lab = "src.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+py-modules = ["ai_text_lab"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
