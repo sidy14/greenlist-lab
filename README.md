@@ -49,6 +49,31 @@ report = ai_text_lab.analyze(text, model_id=''openai-community/gpt2'')
 print(report.to_human())
 cleaned = ai_text_lab.clean(text)
 
+
+## 4-layer AI-text detection
+
+\\ash
+ai-text-lab detect file.txt        # full (vendor + surface + stylometric + Arabic)
+ai-text-lab detect file.txt --fast # skip stylometric (no torch needed)
+ai-text-lab detect file.txt --json # machine-readable
+\
+Detects signatures from:
+- **OpenAI o3/o4-mini** — deterministic (NNBSP U+202F markers)
+- **Anthropic Claude** — thinking tags, system prompt leakage
+- **Google Gemini** — control tokens
+- **Meta Llama 3** — chat template markers
+- **Statistical watermarks** — Green-List, SynthID (with tokenizer)
+- **Stylometric features** — perplexity, burstiness, lexical diversity
+- **Arabic-specific AI markers** — formal phrases, tashkeel patterns
+
+## Streamlit UI
+
+\\ash
+pip install streamlit
+streamlit run app.py
+\
+Opens a bilingual (English / Arabic) interface at http://localhost:8501
+
 ## Reproduce the paper
 
 python -m pytest tests/ -v
