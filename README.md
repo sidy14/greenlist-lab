@@ -2,33 +2,70 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-| Broken by deep rewrite       | \*\*yes\*\*         |
 
+# Green-List vs SynthID-Text: A Statistical Watermark Study
 
+Reproducible study of the Kirchenbauer et al. (2023) green-list watermark
+and Google DeepMind''s SynthID-Text (2024), with a unified Python toolkit
+for detecting and cleaning AI-generated text artifacts in Latin and Arabic.
 
-\## SynthID-Text comparison (same GPT-2, same prompts)
+## Headline result
 
+| Model | Params | Vocab | Green-List TPR | SynthID TPR |
+|---|---|---|---|---|
+| GPT-2 (base) | 124M | 50,257 | 100% | 100% |
+| Qwen 2.5 (chat) | 500M | 151,665 | 0% | 100% |
+| TinyLlama (chat) | 1.1B | 32,000 | 75% | 100% |
 
+Finding: Green-List fails above ~100k vocabulary size. SynthID-Text is
+immune thanks to its 30-key averaging.
 
-| Metric              | Green-List | SynthID-Text |
+## Repository layout
 
-|---------------------|------------|--------------|
+src/            28 Python modules - toolkit + research scripts
+tests/          59 unit tests
+data/reports/   CSVs + 11 publication figures
+paper/          LaTeX source, compiled PDF, slide deck
+dev/            Scratch scripts used during exploration
 
-| Calibration separation | 10.77σ  | \*\*12.34σ\*\*   |
+## Install
 
-| punct\_strip TPR     | 100%       | 67%          |
+git clone https://github.com/sidy14/greenlist-lab.git
+cd greenlist-lab
+pip install -e .[dev]
 
-| T5-PAWS paraphrase   | +5.34      | +4.51        |
+Lightweight install (no torch required for text cleaning):
+pip install -e . --no-deps
+pip install numpy
 
-| Back-translation    | +7.97      | +5.09        |
+## Use the toolkit
 
-| Free rewrite        | +2.09      | +0.01        |
+ai-text-lab analyze file.txt --model openai-community/gpt2
+ai-text-lab clean file.txt -o cleaned.txt
+ai-text-lab diff file.txt
 
+import ai_text_lab
+report = ai_text_lab.analyze(text, model_id=''openai-community/gpt2'')
+print(report.to_human())
+cleaned = ai_text_lab.clean(text)
 
+## Reproduce the paper
 
-\*\*Finding:\*\* neither watermark dominates. SynthID is stronger on
+python -m pytest tests/ -v
+python src/run_calibration.py
+python src/tinyllama_all.py
+python src/qwen_all.py
+python src/plot_three_models.py
 
-calibration and local perturbations; Green-List is more robust to
+## Citation
 
-structural changes. Both fail against free-form rewriting.
+@misc{cissokho2026watermarks,
+  title  = {When Watermarks Fail: Non-Monotonic Sensitivity of Statistical LLM Watermarks to Model Size and Vocabulary},
+  author = {Cissokho, Sidy},
+  year   = {2026},
+  url    = {https://github.com/sidy14/greenlist-lab}
+}
 
+## License
+
+MIT - see LICENSE.
