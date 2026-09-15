@@ -1,0 +1,5 @@
+This is a clean sentence.
+But this​ line has a zero-width space.
+And this hаs a Cyrillic homoglyph in place of Latin a.
+And this line uses a non-breaking space.
+Arabic tatweel padding: ـــــ too much.
