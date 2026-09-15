@@ -1,10 +1,11 @@
 """
-cli.py — command-line interface for ai-text-lab.
+cli.py - command-line interface for ai-text-lab.
 
 Usage:
-    python3 src/cli.py analyze <file> [--model gpt2] [--json]
-    python3 src/cli.py clean   <file> -o <out>
-    python3 src/cli.py diff    <file> [--mode lines|chars|both]
+    ai-text-lab analyze <file> [--model gpt2] [--json]
+    ai-text-lab clean   <file> -o <out>
+    ai-text-lab diff    <file> [--mode lines|chars|both]
+    ai-text-lab detect  <file> [--json] [--fast]
 """
 from __future__ import annotations
 
@@ -79,11 +80,33 @@ def cmd_diff(args) -> int:
     return 0
 
 
+def cmd_detect(args) -> int:
+    """Four-layer universal AI-text detection."""
+    text = _read(args.input)
+
+    from universal_analyzer import UniversalAnalyzer
+    analyzer = UniversalAnalyzer(run_stylometric=not args.fast)
+    report = analyzer.analyze(text)
+
+    if args.json:
+        out = report.to_json()
+    else:
+        out = report.to_human()
+
+    if args.output:
+        _write(args.output, out)
+    else:
+        sys.stdout.write(out)
+        if not out.endswith("\n"):
+            sys.stdout.write("\n")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="ai-text-lab")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    a = sub.add_parser("analyze", help="produce a full report")
+    a = sub.add_parser("analyze", help="produce a full report (surface + optional statistical)")
     a.add_argument("input")
     a.add_argument("-o", "--output", default=None)
     a.add_argument("--json", action="store_true")
@@ -104,6 +127,17 @@ def main() -> int:
     d.add_argument("--mode", choices=["lines", "chars", "both"], default="both")
     d.add_argument("--no-color", action="store_true")
     d.set_defaults(func=cmd_diff)
+
+    t = sub.add_parser(
+        "detect",
+        help="4-layer universal AI-text detection (vendor + surface + stylometric + Arabic)",
+    )
+    t.add_argument("input")
+    t.add_argument("-o", "--output", default=None)
+    t.add_argument("--json", action="store_true")
+    t.add_argument("--fast", action="store_true",
+                   help="skip stylometric layer (no torch needed)")
+    t.set_defaults(func=cmd_detect)
 
     args = ap.parse_args()
     return args.func(args)
