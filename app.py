@@ -14,6 +14,22 @@ st.set_page_config(
     page_icon="[lab]",
     layout="wide",
 )
+# --- Google Analytics ---
+import streamlit.components.v1 as components
+components.html(
+    '''
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-L8WQVWHX6B"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-L8WQVWHX6B');
+    </script>
+    ''',
+    height=0,
+)
+# --- end Google Analytics ---
+
 
 # ---------------- Language FIRST (so CSS can use it) ----------------
 if "lang" not in st.session_state:
