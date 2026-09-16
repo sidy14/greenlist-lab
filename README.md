@@ -4,6 +4,8 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![HF Model](https://img.shields.io/badge/Model-arabic--ai--detector-yellow)](https://huggingface.co/sidy14/arabic-ai-detector)
 
+🚀 **[Try the live app](https://greenlist-lab.streamlit.app)**
+
 # Green-List vs SynthID-Text: A Statistical Watermark Study
 
 Reproducible study of the Kirchenbauer et al. (2023) green-list watermark
