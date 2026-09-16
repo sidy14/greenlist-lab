@@ -14,36 +14,6 @@ st.set_page_config(
     page_icon="[lab]",
     layout="wide",
 )
-# --- Google Analytics (parent-injection) ---
-import streamlit.components.v1 as components
-components.html(
-    """
-    <script>
-    (function() {
-        try {
-            var doc = window.parent.document;
-            var s1 = doc.createElement('script');
-            s1.async = true;
-            s1.src = 'https://www.googletagmanager.com/gtag/js?id=G-L8WQVWHX6B';
-            doc.head.appendChild(s1);
-            var s2 = doc.createElement('script');
-            s2.innerHTML = "window.dataLayer=window.dataLayer||[];"
-                + "function gtag(){dataLayer.push(arguments);}"
-                + "gtag('js',new Date());"
-                + "gtag('config','G-L8WQVWHX6B');";
-            doc.head.appendChild(s2);
-        } catch (e) {
-            console.log('GA parent-injection failed:', e);
-        }
-    })();
-    </script>
-    """,
-    height=0,
-    width=0,
-)
-# --- end Google Analytics ---
-
-
 # ---------------- Language FIRST (so CSS can use it) ----------------
 if "lang" not in st.session_state:
     st.session_state.lang = "ar"
