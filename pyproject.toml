@@ -63,3 +63,6 @@ exclude_lines = [
     "pragma: no cover",
     "raise NotImplementedError",
 ]
+
+[project.optional-dependencies]
+training = ['datasets>=3.0', 'scikit-learn>=1.3']

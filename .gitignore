@@ -16,3 +16,5 @@ paper/*.out
 paper/*.blg
 paper/*.bbl
 ai_text_lab.egg-info/
+data/arabic/
+models/
