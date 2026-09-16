@@ -1,268 +1,439 @@
-"""
-ai-text-lab Streamlit UI - bilingual (English / Arabic).
-
-Run: streamlit run app.py
-"""
+"""ai-text-lab Streamlit UI - full version with RTL sidebar."""
+import sys, pathlib, statistics
 import streamlit as st
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+_ROOT = pathlib.Path(__file__).parent
+sys.path.insert(0, str(_ROOT / "src"))
+
+from sentence_analyzer import SentenceAnalyzer, aggregate
+from gauge import render_gauge, highlight_sentences
 import ai_text_lab
 
-
-# ------------------------------------------------------------------ i18n
-T = {
-    "en": {
-        "lang_label": "Language",
-        "title": "AI-Text-Lab",
-        "subtitle": "Detect and clean AI-text surface artifacts and statistical watermarks (Latin + Arabic)",
-        "settings": "Settings",
-        "stat_detection": "Statistical detection (loads torch + model)",
-        "model_label": "Model for statistical detection",
-        "normalize_alef": "Normalize alef variants (alef-hamza to bare alef)",
-        "normalize_ya": "Normalize ya variants",
-        "strip_tashkeel": "Strip ALL tashkeel",
-        "tip": "Paste text on the left, see the report and cleaned output on the right.",
-        "input_h": "Input",
-        "analyze": "Analyze",
-        "analyzing": "Analyzing...",
-        "report_h": "Report",
-        "surface_findings": "Surface findings",
-        "arabic_findings": "Arabic findings",
-        "chars_changed": "Chars net change",
-        "surface_artifacts": "Surface artifacts (Latin)",
-        "arabic_artifacts": "Arabic artifacts",
-        "stat_watermark": "Statistical watermark",
-        "cleaned_text": "Cleaned text",
-        "download": "Download cleaned text",
-        "diff_h": "Diff (character-level)",
-        "not_arabic": "Text is not Arabic (or <15% Arabic chars)",
-        "none_detected": "None detected",
-        "not_attempted": "Not attempted (enable in sidebar)",
-        "watermarked": "WATERMARKED",
-        "not_watermarked": "not watermarked",
-        "tashkeel_density": "Tashkeel density",
-        "about": "About",
-        "about_body": "ai-text-lab v0.2.0 - detect and clean surface artifacts and statistical watermarks in Latin and Arabic text.",
-        "footer": "ai-text-lab v0.2.0  |  github.com/sidy14/greenlist-lab",
-    },
-    "ar": {
-        "lang_label": "\u0627\u0644\u0644\u063a\u0629",
-        "title": "\u0645\u062e\u062a\u0628\u0631 \u0646\u0635 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a",
-        "subtitle": "\u0643\u0634\u0641 \u0648\u062a\u0646\u0638\u064a\u0641 \u0622\u062b\u0627\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a \u0627\u0644\u0633\u0637\u062d\u064a\u0629 \u0648\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062a \u0627\u0644\u0645\u0627\u0626\u064a\u0629 \u0627\u0644\u0625\u062d\u0635\u0627\u0626\u064a\u0629 (\u0644\u0627\u062a\u064a\u0646\u064a + \u0639\u0631\u0628\u064a)",
-        "settings": "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
-        "stat_detection": "\u0627\u0644\u0643\u0634\u0641 \u0627\u0644\u0625\u062d\u0635\u0627\u0626\u064a (\u064a\u062d\u0645\u0651\u0644 \u0627\u0644\u0646\u0645\u0648\u0630\u062c)",
-        "model_label": "\u0646\u0645\u0648\u0630\u062c \u0627\u0644\u0643\u0634\u0641",
-        "normalize_alef": "\u062a\u0637\u0628\u064a\u0639 \u0627\u0644\u0623\u0644\u0641",
-        "normalize_ya": "\u062a\u0637\u0628\u064a\u0639 \u0627\u0644\u064a\u0627\u0621",
-        "strip_tashkeel": "\u062a\u062c\u0631\u064a\u062f \u0643\u0644 \u0627\u0644\u062a\u0634\u0643\u064a\u0644",
-        "tip": "\u0627\u0644\u0635\u0642 \u0627\u0644\u0646\u0635 \u0639\u0644\u0649 \u0627\u0644\u064a\u0645\u064a\u0646\u060c \u0648\u0634\u0627\u0647\u062f \u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0648\u0627\u0644\u0646\u062a\u064a\u062c\u0629 \u0639\u0644\u0649 \u0627\u0644\u064a\u0633\u0627\u0631.",
-        "input_h": "\u0627\u0644\u0645\u062f\u062e\u0644\u0627\u062a",
-        "analyze": "\u062a\u062d\u0644\u064a\u0644",
-        "analyzing": "\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0644\u064a\u0644...",
-        "report_h": "\u0627\u0644\u062a\u0642\u0631\u064a\u0631",
-        "surface_findings": "\u0627\u0644\u0622\u062b\u0627\u0631 \u0627\u0644\u0633\u0637\u062d\u064a\u0629",
-        "arabic_findings": "\u0627\u0644\u0622\u062b\u0627\u0631 \u0627\u0644\u0639\u0631\u0628\u064a\u0629",
-        "chars_changed": "\u0635\u0627\u0641\u064a \u0627\u0644\u062a\u063a\u064a\u064a\u0631",
-        "surface_artifacts": "\u0627\u0644\u0622\u062b\u0627\u0631 \u0627\u0644\u0633\u0637\u062d\u064a\u0629 (\u0644\u0627\u062a\u064a\u0646\u064a\u0629)",
-        "arabic_artifacts": "\u0627\u0644\u0622\u062b\u0627\u0631 \u0627\u0644\u0639\u0631\u0628\u064a\u0629",
-        "stat_watermark": "\u0627\u0644\u0639\u0644\u0627\u0645\u0629 \u0627\u0644\u0645\u0627\u0626\u064a\u0629 \u0627\u0644\u0625\u062d\u0635\u0627\u0626\u064a\u0629",
-        "cleaned_text": "\u0627\u0644\u0646\u0635 \u0627\u0644\u0645\u0646\u0638\u0651\u0641",
-        "download": "\u062a\u0646\u0632\u064a\u0644 \u0627\u0644\u0646\u0635 \u0627\u0644\u0645\u0646\u0638\u0651\u0641",
-        "diff_h": "\u0627\u0644\u0641\u0631\u0642 (\u0639\u0644\u0649 \u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u0645\u062d\u0631\u0641)",
-        "not_arabic": "\u0627\u0644\u0646\u0635 \u0644\u064a\u0633 \u0639\u0631\u0628\u064a\u0627\u064b (\u0623\u0648 \u0623\u0642\u0644 \u0645\u0646 15\u066a \u0645\u062d\u0627\u0631\u0641 \u0639\u0631\u0628\u064a\u0629)",
-        "none_detected": "\u0644\u0645 \u064a\u064f\u0643\u062a\u0634\u0641 \u0634\u064a\u0621",
-        "not_attempted": "\u0644\u0645 \u064a\u064f\u062c\u0631\u064e (\u0641\u0639\u0651\u0644\u0647 \u0641\u064a \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u062c\u0627\u0646\u0628\u064a)",
-        "watermarked": "\u0645\u064f\u0639\u0644\u0651\u064e\u0645 \u0628\u0645\u0627\u0626\u064a\u0629",
-        "not_watermarked": "\u063a\u064a\u0631 \u0645\u064f\u0639\u0644\u0651\u064e\u0645",
-        "tashkeel_density": "\u0643\u062b\u0627\u0641\u0629 \u0627\u0644\u062a\u0634\u0643\u064a\u0644",
-        "about": "\u062d\u0648\u0644",
-        "about_body": "\u0645\u062e\u062a\u0628\u0631 \u0646\u0635 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a v0.2.0 - \u0643\u0634\u0641 \u0648\u062a\u0646\u0638\u064a\u0641 \u0627\u0644\u0622\u062b\u0627\u0631 \u0627\u0644\u0633\u0637\u062d\u064a\u0629 \u0648\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062a \u0627\u0644\u0645\u0627\u0626\u064a\u0629 \u0641\u064a \u0627\u0644\u0646\u0635\u0648\u0635 \u0627\u0644\u0644\u0627\u062a\u064a\u0646\u064a\u0629 \u0648\u0627\u0644\u0639\u0631\u0628\u064a\u0629.",
-        "footer": "ai-text-lab v0.2.0  |  github.com/sidy14/greenlist-lab",
-    },
-}
-
-
-# ------------------------------------------------------------- state
-if "lang" not in st.session_state:
-    st.session_state.lang = "en"
-
 st.set_page_config(
-    page_title="AI-Text-Lab" if st.session_state.lang == "en" else "\u0645\u062e\u062a\u0628\u0631 \u0646\u0635 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a",
+    page_title="AI-Text-Lab",
     page_icon="[lab]",
     layout="wide",
 )
 
+# ---------------- Language FIRST (so CSS can use it) ----------------
+if "lang" not in st.session_state:
+    st.session_state.lang = "ar"
 
-# ------------------------------------------------------- language picker
 with st.sidebar:
-    st.markdown("### \U0001F310 " + T["en"]["lang_label"] + " / " + T["ar"]["lang_label"])
-    choice = st.radio(
-        "Language",
-        ["English", "\u0627\u0644\u0639\u0631\u0628\u064a\u0629"],
-        index=0 if st.session_state.lang == "en" else 1,
-        horizontal=True,
-        label_visibility="collapsed",
-        key="_lang_radio",
-    )
-    st.session_state.lang = "en" if choice == "English" else "ar"
+    st.markdown("### 🌐 Language / اللغة")
+    choice = st.radio("lang", ["العربية", "English"], horizontal=True,
+                      label_visibility="collapsed", key="_lang")
+    st.session_state.lang = "ar" if choice == "العربية" else "en"
 
-L = st.session_state.lang
-S = T[L]
+AR = st.session_state.lang == "ar"
+def T(ar, en): return ar if AR else en
+
+# ---------------- Beautiful RTL CSS ----------------
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+        --primary: #e74c3c;
+        --primary-dark: #c0392b;
+        --success: #27ae60;
+        --warning: #f39c12;
+        --bg-card: #ffffff;
+        --bg-page: #f8fafc;
+        --text-main: #1a202c;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        --shadow-lg: 0 10px 25px rgba(0,0,0,0.08);
+        --radius: 14px;
+        --radius-sm: 8px;
+    }
+
+    html, body, [class*="css"], .stApp {
+        font-family: 'IBM Plex Sans Arabic', 'Inter', -apple-system, sans-serif !important;
+    }
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 3rem !important;
+        max-width: 1400px;
+    }
+
+    /* ===== SIDEBAR on the RIGHT (RTL) ===== */
+    [data-testid="stSidebar"] {
+        right: 0 !important;
+        left: auto !important;
+        border-left: 1px solid var(--border);
+        border-right: none;
+        background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+        direction: rtl;
+    }
+    [data-testid="stSidebar"] > div:first-child {
+        direction: rtl !important;
+        text-align: right !important;
+        padding-right: 1.25rem;
+        padding-left: 1rem;
+    }
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {
+        right: 0 !important;
+        left: auto !important;
+    }
+    [data-testid="stSidebar"] * {
+        direction: rtl;
+        text-align: right;
+    }
+    [data-testid="stSidebar"] input,
+    [data-testid="stSidebar"] textarea,
+    [data-testid="stSidebar"] select,
+    [data-testid="stSidebar"] [data-baseweb="select"] {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    [data-testid="stSidebar"] .stCheckbox label,
+    [data-testid="stSidebar"] .stRadio label {
+        flex-direction: row-reverse !important;
+        justify-content: flex-end !important;
+    }
+
+    /* ===== MAIN content RTL ===== */
+    [data-testid="stAppViewContainer"] .main {
+        direction: rtl;
+        text-align: right;
+    }
+    [data-testid="stAppViewContainer"] h1,
+    [data-testid="stAppViewContainer"] h2,
+    [data-testid="stAppViewContainer"] h3,
+    [data-testid="stAppViewContainer"] p,
+    [data-testid="stAppViewContainer"] label {
+        text-align: right;
+    }
+    code, pre, .stCode, [data-testid="stCodeBlock"] {
+        direction: ltr !important;
+        text-align: left !important;
+    }
+
+    /* ===== Textarea ===== */
+    .stTextArea textarea {
+        direction: rtl !important;
+        text-align: right !important;
+        font-family: 'IBM Plex Sans Arabic', sans-serif !important;
+        font-size: 16px !important;
+        line-height: 2 !important;
+        border-radius: var(--radius) !important;
+        border: 2px solid var(--border) !important;
+        background: var(--bg-card) !important;
+        padding: 16px !important;
+        transition: border-color 0.2s;
+    }
+    .stTextArea textarea:focus {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.1) !important;
+    }
+
+    /* ===== Titles ===== */
+    h1 {
+        font-weight: 700 !important;
+        color: var(--text-main) !important;
+        background: linear-gradient(135deg, #2c3e50 0%, #e74c3c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        padding-bottom: 0.5rem;
+    }
+    h2, h3 { color: var(--text-main) !important; font-weight: 600 !important; }
+
+    /* ===== Metric cards ===== */
+    .metric-card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 18px 22px;
+        text-align: center;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    .metric-card .value {
+        font-size: 30px; font-weight: 700;
+        color: var(--text-main); line-height: 1.2;
+    }
+    .metric-card .label {
+        font-size: 13px; color: var(--text-muted);
+        margin-top: 6px; font-weight: 500;
+    }
+
+    /* ===== Buttons ===== */
+    .stButton > button {
+        border-radius: var(--radius) !important;
+        padding: 12px 22px !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        transition: all 0.2s !important;
+        border: none !important;
+    }
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3) !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4) !important;
+    }
+    .stButton > button[kind="secondary"] {
+        background: var(--bg-card) !important;
+        color: var(--text-main) !important;
+        border: 1px solid var(--border) !important;
+    }
+    .stButton > button[kind="secondary"]:hover {
+        border-color: var(--primary) !important;
+        color: var(--primary) !important;
+    }
+
+    .section-title {
+        font-size: 18px; font-weight: 700;
+        color: var(--text-main);
+        margin-top: 28px; margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--primary);
+        display: inline-block;
+    }
+    .verdict-badge {
+        display: inline-block;
+        padding: 10px 24px;
+        border-radius: 24px;
+        font-weight: 700;
+        font-size: 15px;
+        margin: 12px 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
+</style>
+""", unsafe_allow_html=True)
 
 
-# ------------------------------------------------------ RTL style (ar)
-if L == "ar":
-    st.markdown(
-        """
-        <style>
-        html, body, .stApp {
-            direction: rtl;
-        }
-        .stMarkdown, .stCaption, h1, h2, h3, h4, h5, h6 {
-            text-align: right;
-        }
-        .stTextArea textarea, .stTextInput input {
-            direction: rtl;
-            text-align: right;
-        }
-        .stButton button {
-            direction: rtl;
-        }
-        .stCode, code {
-            direction: ltr;
-            text-align: left;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+# ---------------- helpers (defined BEFORE use) ----------------
+def _verdict_label(score: float, ar: bool) -> str:
+    if score > 0.7:
+        return "نص مكتوب بالذكاء الاصطناعي" if ar else "Text written by AI"
+    if score > 0.4:
+        return "مشكوك فيه — قد يكون مزيجاً" if ar else "Uncertain — likely mixed"
+    if score > 0.15:
+        return "قد يكون بشرياً مع لمسات AI" if ar else "Probably human, some AI hints"
+    return "نص بشري" if ar else "Human-written"
 
 
-# ------------------------------------------------------------ header
-st.title(S["title"])
-st.caption(S["subtitle"])
+def _is_arabic(text: str) -> bool:
+    arabic = sum(1 for c in text if "\u0600" <= c <= "\u06ff")
+    return arabic / max(len(text), 1) > 0.15
 
 
-# --------------------------------------------------------- settings
+# ---------------- header ----------------
+col_h1, col_h2 = st.columns([4, 1])
+with col_h1:
+    st.markdown(f"<h1>{T('مختبر نص الذكاء الاصطناعي', 'AI-Text-Lab')}</h1>",
+                unsafe_allow_html=True)
+    st.caption(T("كشف وتنظيف النصوص المولَّدة — كشف على مستوى الجملة",
+                 "Detect and clean AI text — sentence-level detection"))
+with col_h2:
+    st.markdown("<div style='text-align:right; padding-top:20px; color:#6c757d; font-size:13px;'>v0.3.0</div>",
+                unsafe_allow_html=True)
+
+
+# ---------------- sidebar settings ----------------
 with st.sidebar:
     st.divider()
-    st.header(S["settings"])
-    use_model = st.checkbox(S["stat_detection"], value=False)
-    model_id = st.selectbox(
-        S["model_label"],
-        [
-            "openai-community/gpt2",
-            "Qwen/Qwen2.5-0.5B-Instruct",
-            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-        ],
-        index=0,
-        disabled=not use_model,
-    )
-    arabic_alef = st.checkbox(S["normalize_alef"], value=False)
-    arabic_ya = st.checkbox(S["normalize_ya"], value=False)
-    arabic_tashkeel = st.checkbox(S["strip_tashkeel"], value=False)
+    st.markdown(f"### {T('خيارات العرض', 'Display options')}")
+    show_gauge = st.checkbox(T("عرض العدّاد الدائري", "Show circular gauge"), value=True)
+    show_highlight = st.checkbox(T("تلوين الجمل", "Highlight sentences"), value=True)
+    show_table = st.checkbox(T("جدول مفصّل", "Detailed table"), value=False)
+    min_chars = st.slider(T("الحد الأدنى لطول الجملة", "Min sentence length"),
+                          10, 200, 40, 10)
+
     st.divider()
-    st.caption(S["tip"])
+    st.markdown(f"### {T('التنظيف العربي', 'Arabic cleanup')}")
+    ar_alef = st.checkbox(T("تطبيع الألف (أ إ آ ← ا)", "Normalize alef variants"),
+                          value=False, key="ar_alef")
+    ar_ya = st.checkbox(T("تطبيع الياء (ى ئ ← ي)", "Normalize ya variants"),
+                        value=False, key="ar_ya")
+    ar_tashkeel = st.checkbox(T("تجريد كل التشكيل", "Strip all tashkeel"),
+                              value=False, key="ar_tashkeel")
+
     st.divider()
-    with st.expander(S["about"]):
-        st.write(S["about_body"])
-
-
-# ------------------------------------------------------------- layout
-col_left, col_right = st.columns([1, 1])
-if L == "ar":
-    col_input, col_report = col_right, col_left
-else:
-    col_input, col_report = col_left, col_right
-
-with col_input:
-    st.subheader(S["input_h"])
-    default_text = (
-        "This is p\u0430rt of a test with \u200b a zero-width space.\n\n"
-        "\u0645\u0631\u062d\u0628\u064b\u0627 \u0628\u0643\u0645\u060c "
-        "\u0627\u0644\u0623\u0631\u0642\u0627\u0645: "
-        "\u0661\u0662\u0663\u0664\u0665\u060c "
-        "\u0648\u0627\u0644\u0641\u0627\u0635\u0644\u0629 "
-        "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u060c"
+    st.markdown(f"### {T('الكشف الإحصائي', 'Statistical detection')}")
+    use_stat = st.checkbox(
+        T("تشغيل Green-List / SynthID", "Enable Green-List / SynthID"),
+        value=False, key="use_stat",
+        help=T("يحتاج تحميل نموذج. بطيء لكنه دقيق.",
+               "Loads a model. Slower but accurate."),
     )
-    text = st.text_area(
-        S["input_h"],
-        value=default_text,
-        height=300,
-        label_visibility="collapsed",
+    stat_model = st.selectbox(
+        T("النموذج", "Model"),
+        ["openai-community/gpt2", "Qwen/Qwen2.5-0.5B-Instruct"],
+        index=0, disabled=not use_stat, key="stat_model",
     )
-    analyze_btn = st.button(S["analyze"], type="primary", use_container_width=True)
+
+    st.divider()
+    st.caption(T("تعمل الأداة على العربية والإنجليزية.",
+                 "Works on Arabic and English."))
 
 
-if analyze_btn and text.strip():
-    with st.spinner(S["analyzing"]):
-        report = ai_text_lab.analyze(
-            text,
-            model_id=(model_id if use_model else None),
-            arabic_alef=arabic_alef,
-            arabic_ya=arabic_ya,
-            arabic_strip_tashkeel=arabic_tashkeel,
+# ---------------- input area ----------------
+st.markdown(f"<div class='section-title'>{T('النص المُدخل', 'Input text')}</div>",
+            unsafe_allow_html=True)
+
+default_text = (
+    "يُعدّ التعليم أساس نهضة المجتمعات وتقدّمها، فهو الوسيلة التي يكتسب بها "
+    "الإنسان المعرفة والمهارات. ولا يقتصر التعليم على حفظ المعلومات، بل يهدف "
+    "إلى تنمية التفكير النقدي وتعزيز القدرة على حل المشكلات.\n\n"
+    "ذهبتُ أمس إلى السوق لأشتري بعض الفواكه. كانت الأسعار مرتفعة قليلاً هذه "
+    "المرة، لكن البائع كان لطيفاً. تحدثنا قليلاً عن الطقس وعن الموسم الجديد."
+)
+text = st.text_area(T("الصق النص هنا", "Paste text here"),
+                    value=default_text, height=260,
+                    label_visibility="collapsed", key="input_text")
+
+# stats
+word_count = len(text.split())
+char_count = len(text)
+sent_count = len([s for s in text.replace("!", ".").replace("?", ".").split(".") if s.strip()])
+c1, c2, c3 = st.columns(3)
+for col, val, lab in [
+    (c1, word_count, T("كلمة", "words")),
+    (c2, char_count, T("حرف", "chars")),
+    (c3, sent_count, T("جملة (تقريبي)", "sentences (approx)")),
+]:
+    col.markdown(f"<div class='metric-card'><div class='value'>{val}</div>"
+                 f"<div class='label'>{lab}</div></div>", unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------- action buttons ----------------
+col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+with col_btn1:
+    detect_btn = st.button(T("🔍 تحقق من الذكاء الاصطناعي", "🔍 Detect AI"),
+                           type="primary", use_container_width=True)
+with col_btn2:
+    clean_btn = st.button(T("🧹 تنظيف النص", "🧹 Clean text"),
+                          use_container_width=True)
+with col_btn3:
+    clear_btn = st.button(T("🗑️ مسح", "🗑️ Clear"), use_container_width=True)
+
+
+# ---------------- detection ----------------
+@st.cache_resource
+def get_analyzer():
+    return SentenceAnalyzer()
+
+
+if detect_btn and text.strip():
+    with st.spinner(T("جاري التحليل على مستوى الجملة...", "Analyzing sentence by sentence...")):
+        analyzer = get_analyzer()
+        scores = analyzer.analyze(text, min_chars=min_chars)
+        agg = aggregate(scores)
+
+    # Balanced final score
+    final_score = (agg["mean"] + agg["ai_ratio"]) / 2
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{T('النتيجة', 'Result')}</div>",
+                unsafe_allow_html=True)
+
+    col_g, col_s = st.columns([1, 2])
+
+    with col_g:
+        if show_gauge:
+            st.markdown(render_gauge(final_score,
+                                     label=T("ذكاء اصطناعي", "AI")),
+                        unsafe_allow_html=True)
+        verdict = _verdict_label(final_score, AR)
+        color = "#e74c3c" if final_score > 0.7 else "#f39c12" if final_score > 0.4 \
+                else "#f1c40f" if final_score > 0.15 else "#27ae60"
+        st.markdown(f"<div style='text-align:center;'><span class='verdict-badge' "
+                    f"style='background:{color}; color:white;'>{verdict}</span></div>",
+                    unsafe_allow_html=True)
+
+    with col_s:
+        st.markdown(f"<div class='section-title'>{T('إحصائيات', 'Statistics')}</div>",
+                    unsafe_allow_html=True)
+        rows = [
+            (T("عدد الجمل", "Sentences"), agg["n"]),
+            (T("متوسط درجة AI", "Mean AI score"), f"{agg['mean']:.1%}"),
+            (T("نسبة الجمل المُصنّفة AI", "Sentences tagged AI"),
+             f"{agg['ai_ratio']:.1%}"),
+            (T("نسبة الجمل المُصنّفة بشرية", "Sentences tagged Human"),
+             f"{agg['human_ratio']:.1%}"),
+        ]
+        for lab, val in rows:
+            st.markdown(f"<div style='display:flex; justify-content:space-between;"
+                        f" padding:6px 0; border-bottom:1px solid #f0f0f0;'>"
+                        f"<span style='color:#6c757d;'>{lab}</span>"
+                        f"<span style='font-weight:600; color:#2c3e50;'>{val}</span>"
+                        f"</div>", unsafe_allow_html=True)
+
+    # Highlighted sentences
+    if show_highlight:
+        st.markdown(f"<div class='section-title'>"
+                    f"{T('تلوين الجمل', 'Sentence highlighting')}</div>",
+                    unsafe_allow_html=True)
+        rtl = _is_arabic(text)
+        st.markdown(highlight_sentences(scores, rtl=rtl), unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='margin-top:16px; font-size:13px; color:#6c757d;'>"
+            f"<span style='background:rgba(231,76,60,0.20); padding:3px 8px; "
+            f"border-radius:4px; margin-left:8px;'>"
+            f"{T('ذكاء اصطناعي', 'AI')}</span>"
+            f"<span style='background:rgba(243,156,18,0.20); padding:3px 8px; "
+            f"border-radius:4px; margin-left:8px;'>"
+            f"{T('مشكوك', 'Uncertain')}</span>"
+            f"<span style='background:rgba(39,174,96,0.15); padding:3px 8px; "
+            f"border-radius:4px;'>{T('بشري', 'Human')}</span>"
+            f"</div>", unsafe_allow_html=True)
+
+    if show_table:
+        st.markdown(f"<div class='section-title'>"
+                    f"{T('تفصيل الجمل', 'Per-sentence detail')}</div>",
+                    unsafe_allow_html=True)
+        import pandas as pd
+        df = pd.DataFrame([
+            {
+                T("الجملة", "Sentence"): s.text[:80] + ("..." if len(s.text) > 80 else ""),
+                T("الدرجة", "Score"): f"{s.score:.1%}",
+                T("الحكم", "Verdict"): s.verdict,
+                T("الطول", "Length"): s.length,
+            }
+            for s in scores
+        ])
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+elif clean_btn and text.strip():
+    from analyzer import Analyzer
+    if ar_alef or ar_ya or ar_tashkeel:
+        analyzer = Analyzer(
+            arabic_alef=ar_alef,
+            arabic_ya=ar_ya,
+            arabic_strip_tashkeel=ar_tashkeel,
         )
+        result = analyzer.analyze(text).cleaned_text
+    else:
+        result = ai_text_lab.clean(text)
+    st.markdown(f"<div class='section-title'>"
+                f"{T('النص المنظّف', 'Cleaned text')}</div>",
+                unsafe_allow_html=True)
+    if ar_alef or ar_ya or ar_tashkeel:
+        st.caption(T("تم تطبيق خيارات التنظيف العربي المحدّدة.",
+                     "Applied selected Arabic cleanup options."))
+    st.code(result, language=None)
+    st.download_button(T("📥 تنزيل", "📥 Download"), result,
+                       file_name="cleaned.txt", mime="text/plain")
 
-    with col_report:
-        st.subheader(S["report_h"])
-        s = report.surface
-        a = report.arabic
-        n = report.normalization
-        st_d = report.statistical
-
-        m1, m2, m3 = st.columns(3)
-        m1.metric(S["surface_findings"], s["total_findings"])
-        m2.metric(
-            S["arabic_findings"],
-            sum(a["counts"].values()) if a["is_arabic"] else 0,
-        )
-        m3.metric(S["chars_changed"], n["net_delta"])
-
-        st.markdown("### " + S["surface_artifacts"])
-        if s["total_findings"] == 0:
-            st.success(S["none_detected"])
-        else:
-            st.json(s["counts"])
-
-        st.markdown("### " + S["arabic_artifacts"])
-        if not a["is_arabic"]:
-            st.info(S["not_arabic"])
-        elif not a["counts"]:
-            st.success(S["none_detected"])
-        else:
-            st.json(a["counts"])
-            pct = round(a["tashkeel_density"] * 100, 2)
-            st.caption(S["tashkeel_density"] + ": " + str(pct) + "%")
-
-        st.markdown("### " + S["stat_watermark"])
-        if st_d.get("status") == "not_attempted":
-            st.info(S["not_attempted"])
-        elif st_d.get("status") == "error":
-            st.error(st_d.get("message"))
-        else:
-            for key in ("greenlist", "synthid"):
-                info = st_d.get(key)
-                if info:
-                    verdict = S["watermarked"] if info["prediction"] else S["not_watermarked"]
-                    zval = round(info["z"], 3)
-                    st.metric(key + " z", str(zval), help=verdict)
-
-    st.divider()
-    st.subheader(S["cleaned_text"])
-    st.code(report.cleaned_text, language=None)
-    st.download_button(
-        S["download"],
-        data=report.cleaned_text,
-        file_name="cleaned.txt",
-        mime="text/plain",
-    )
-
-    st.subheader(S["diff_h"])
-    st.code(ai_text_lab.diff(text, mode="chars"), language=None)
+elif clear_btn:
+    st.rerun()
 
 
-st.divider()
-st.caption(S["footer"])
+st.markdown("---")
+st.caption("ai-text-lab v0.3.0  |  github.com/sidy14/greenlist-lab")
