@@ -1,0 +1,6 @@
+[server]
+fileWatcherType = "none"
+
+[runner]
+magicEnabled = false
+fastReruns = false
