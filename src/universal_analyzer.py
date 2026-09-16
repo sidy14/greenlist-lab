@@ -15,6 +15,7 @@ from dataclasses import asdict, dataclass, field
 from surface_detector import SurfaceDetector
 from arabic_surface import ArabicSurfaceDetector
 from arabic_detector import ArabicDetector
+from arabic_ml_detector import ArabicMLDetector
 from vendor_signatures import VendorDetector
 from normalizer import Normalizer
 from arabic_normalizer import ArabicNormalizer
@@ -92,6 +93,7 @@ class UniversalAnalyzer:
         self.surface = SurfaceDetector()
         self.arabic = ArabicSurfaceDetector()
         self.arabic_detector = ArabicDetector()
+        self.arabic_ml = ArabicMLDetector()
         self.vendor = VendorDetector()
         self.normalizer = Normalizer()
         self.ar_norm = ArabicNormalizer()
@@ -108,6 +110,9 @@ class UniversalAnalyzer:
         surf = self.surface.scan(text)
         ar = self.arabic.scan(text)
         vend = self.vendor.scan(text)
+        ar_ml = self.arabic_ml.detect(text)
+        ar_det_ml_score = ar_ml.ai_score
+        ar_det_ml_method = ar_ml.method
         ar_det = self.arabic_detector.detect(text)
 
         stylo_data = {
@@ -149,11 +154,13 @@ class UniversalAnalyzer:
                 f"(PPL={stylo_data['perplexity']:.1f}, burst={stylo_data['burstiness']:.2f})"
             )
 
-        # Layer 4: Arabic detector
-        if ar_det.is_arabic and ar_det.ai_score > 0.3:
-            candidates.append(ar_det.ai_score)
+        # Layer 4: Arabic detector (ML preferred)
+        ar_score_for_layer = ar_det_ml_score if ar_det_ml_method == "ml" else ar_det.ai_score
+        if ar_det.is_arabic and ar_score_for_layer > 0.3:
+            candidates.append(ar_score_for_layer)
+            method_tag = "ML" if ar_det_ml_method == "ml" else "rules"
             evidence.append(
-                f"[L4] Arabic AI score {ar_det.ai_score:.0%} "
+                f"[L4-{method_tag}] Arabic AI score {ar_score_for_layer:.0%} "
                 f"({len(ar_det.formal_phrases_found)} formal phrases)"
             )
 
