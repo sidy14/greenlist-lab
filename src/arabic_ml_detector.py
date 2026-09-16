@@ -6,7 +6,17 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from arabic_detector import ArabicDetector
 
-MODEL_DIR = "models/arabic-ai-detector"
+# Try local model first (fast on your machine).
+# Falls back to HuggingFace Hub when the local copy is missing
+# (e.g. when running on Streamlit Community Cloud).
+HF_REPO = "sidy14/arabic-ai-detector"
+LOCAL_DIR = "models/arabic-ai-detector"
+
+import pathlib as _pl
+if _pl.Path(LOCAL_DIR).exists():
+    MODEL_DIR = LOCAL_DIR
+else:
+    MODEL_DIR = HF_REPO
 
 
 @dataclass
