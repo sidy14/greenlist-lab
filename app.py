@@ -242,6 +242,15 @@ with col_h2:
     st.markdown("<div style='text-align:right; padding-top:20px; color:#6c757d; font-size:13px;'>v0.3.0</div>",
                 unsafe_allow_html=True)
 
+st.warning(
+    "⚠️ **تنبيه مهم قبل الاستخدام**\n\n"
+    "الأداة تكشف *التشابه الأسلوبي مع مخرجات ChatGPT*، وليس مصدر النص. "
+    "قد تُصنّف النصوص الرسمية الفصيحة (صحافة، تقارير، رسائل رسمية) "
+    "خطأً كنصوص AI.\n\n"
+    "**استخدم النتيجة كمؤشر فقط، لا كحكم قاطع.**"
+)
+
+
 
 # ---------------- sidebar settings ----------------
 with st.sidebar:
@@ -286,11 +295,11 @@ st.markdown(f"<div class='section-title'>{T('النص المُدخل', 'Input te
             unsafe_allow_html=True)
 
 default_text = (
-    "يُعدّ التعليم أساس نهضة المجتمعات وتقدّمها، فهو الوسيلة التي يكتسب بها "
-    "الإنسان المعرفة والمهارات. ولا يقتصر التعليم على حفظ المعلومات، بل يهدف "
-    "إلى تنمية التفكير النقدي وتعزيز القدرة على حل المشكلات.\n\n"
-    "ذهبتُ أمس إلى السوق لأشتري بعض الفواكه. كانت الأسعار مرتفعة قليلاً هذه "
-    "المرة، لكن البائع كان لطيفاً. تحدثنا قليلاً عن الطقس وعن الموسم الجديد."
+    "الصق نصك هنا لتحليله.\n\n"
+    "للحصول على نتائج موثوقة:\n"
+    "• استخدم نصاً بطول 200 حرف على الأقل\n"
+    "• الأداة تعمل بشكل أفضل على النصوص المطوّلة\n"
+    "• راجع النتائج مع حكمك الشخصي"
 )
 text = st.text_area(T("الصق النص هنا", "Paste text here"),
                     value=default_text, height=260,
@@ -317,7 +326,7 @@ with col_btn1:
     detect_btn = st.button(T("🔍 تحقق من الذكاء الاصطناعي", "🔍 Detect AI"),
                            type="primary", use_container_width=True)
 with col_btn2:
-    clean_btn = st.button(T("🧹 تنظيف النص", "🧹 Clean text"),
+    clean_btn = st.button(T("🧹 إزالة الأحرف الخفية", "🧹 Strip invisible chars"),
                           use_container_width=True)
 with col_btn3:
     clear_btn = st.button(T("🗑️ مسح", "🗑️ Clear"), use_container_width=True)
@@ -382,15 +391,17 @@ if detect_btn and text.strip():
         rtl = _is_arabic(text)
         st.markdown(highlight_sentences(scores, rtl=rtl), unsafe_allow_html=True)
         st.markdown(
-            f"<div style='margin-top:16px; font-size:13px; color:#6c757d;'>"
-            f"<span style='background:rgba(231,76,60,0.20); padding:3px 8px; "
-            f"border-radius:4px; margin-left:8px;'>"
-            f"{T('ذكاء اصطناعي', 'AI')}</span>"
-            f"<span style='background:rgba(243,156,18,0.20); padding:3px 8px; "
-            f"border-radius:4px; margin-left:8px;'>"
-            f"{T('مشكوك', 'Uncertain')}</span>"
+            f"<div style='margin-top:16px; font-size:12px; color:#6c757d; line-height:2;'>"
+            f"<span style='background:rgba(231,76,60,0.30); padding:3px 8px; "
+            f"border-radius:4px; margin-left:6px;'>AI مؤكد</span>"
+            f"<span style='background:rgba(231,76,60,0.15); padding:3px 8px; "
+            f"border-radius:4px; margin-left:6px;'>يشبه AI</span>"
+            f"<span style='background:rgba(241,196,15,0.20); padding:3px 8px; "
+            f"border-radius:4px; margin-left:6px;'>مشكوك</span>"
             f"<span style='background:rgba(39,174,96,0.15); padding:3px 8px; "
-            f"border-radius:4px;'>{T('بشري', 'Human')}</span>"
+            f"border-radius:4px; margin-left:6px;'>يشبه البشري</span>"
+            f"<span style='background:rgba(39,174,96,0.30); padding:3px 8px; "
+            f"border-radius:4px;'>بشري مؤكد</span>"
             f"</div>", unsafe_allow_html=True)
 
     if show_table:

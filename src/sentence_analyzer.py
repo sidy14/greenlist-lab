@@ -84,7 +84,16 @@ class SentenceAnalyzer:
                 logits = self._model(**enc).logits
                 probs = torch.softmax(logits, dim=-1)[:, 1].cpu().tolist()
             for i, p in zip(long_idx, probs):
-                v = ("ai" if p > 0.7 else "human" if p < 0.3 else "uncertain")
+                if p > 0.90:
+                    v = "ai"
+                elif p > 0.70:
+                    v = "likely_ai"
+                elif p > 0.40:
+                    v = "uncertain"
+                elif p > 0.20:
+                    v = "likely_human"
+                else:
+                    v = "human"
                 results[i] = SentenceScore(
                     text=sentences[i], score=float(p), verdict=v,
                     length=len(sentences[i]),
@@ -107,10 +116,16 @@ def aggregate(scores: list[SentenceScore]) -> dict:
     mean = statistics.mean(s.score for s in scores)
     n = len(scores)
     ai = sum(1 for s in scores if s.verdict == "ai")
+    likely_ai = sum(1 for s in scores if s.verdict == "likely_ai")
     hu = sum(1 for s in scores if s.verdict == "human")
+    likely_hu = sum(1 for s in scores if s.verdict == "likely_human")
+    uncertain = sum(1 for s in scores if s.verdict == "uncertain")
     return {
         "n": n,
         "mean": mean,
         "ai_ratio": ai / n,
+        "likely_ai_ratio": likely_ai / n,
         "human_ratio": hu / n,
+        "likely_human_ratio": likely_hu / n,
+        "uncertain_ratio": uncertain / n,
     }
